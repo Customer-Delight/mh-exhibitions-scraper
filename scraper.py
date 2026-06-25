@@ -4,36 +4,36 @@ import pandas as pd
 from datetime import datetime
 
 def scrape_mh_exhibitions():
-    url = "https://stayhappening.com/mumbai-mh/exhibitions"
-    headers = {"User-Agent": "Mozilla/5.0"}
+    url = "https://10times.com/india/maharashtra/exhibitions"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
-    response = requests.get(url, headers=headers)
+    print("Fetching data from 10times.com...")
+    response = requests.get(url, headers=headers, timeout=15)
     soup = BeautifulSoup(response.content, 'lxml')
 
     exhibitions = []
 
-    # StayHappening uses h3 for titles and p tags for details
-    for item in soup.select('.event-card'): # each event block
-        title_tag = item.select_one('h3')
-        title = title_tag.text.strip() if title_tag else "No title"
+    for row in soup.select('table.table tr')[1:]:
+        cols = row.find_all('td')
+        if len(cols) >= 3:
+            title = cols[0].get_text(strip=True)
+            date = cols[1].get_text(strip=True)
+            venue = cols[2].get_text(strip=True)
 
-        # Date and venue are usually in paragraph tags
-        details = item.select('p')
-        date = details[0].text.strip() if len(details) > 0 else "No date"
-        venue = details[1].text.strip() if len(details) > 1 else "No venue"
+            exhibitions.append({
+                "title": title,
+                "date": date,
+                "venue": venue,
+                "city": "Maharashtra",
+                "source": "10times",
+                "scraped_at": datetime.now().strftime("%Y-%m-%d %H:%M")
+            })
 
-        exhibitions.append({
-            "title": title,
-            "date": date,
-            "venue": venue,
-            "source": "StayHappening",
-            "scraped_at": datetime.now().strftime("%Y-%m-%d %H:%M")
-        })
-
+    print(f"Found {len(exhibitions)} exhibitions")
     return exhibitions
 
 if __name__ == "__main__":
     data = scrape_mh_exhibitions()
     df = pd.DataFrame(data)
     df.to_csv('exhibitions.csv', index=False)
-    print(f"Saved {len(data)} exhibitions")
+    print(f"Saved {len(data)} exhibitions to CSV")
