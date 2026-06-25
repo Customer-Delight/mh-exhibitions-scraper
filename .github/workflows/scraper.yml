@@ -2,9 +2,9 @@ name: MH Exhibitions Scraper
 
 on:
   schedule:
-    - cron: '30 5 * * *'   # 11:00 AM IST = 05:30 UTC
-    - cron: '30 11 * * *'  # 5:00 PM IST = 11:30 UTC
-  workflow_dispatch:       # Keep manual "Run workflow" button too
+    - cron: '30 5 * * *'   # 11:00 AM IST
+    - cron: '30 11 * * *'  # 5:00 PM IST
+  workflow_dispatch:
 
 jobs:
   scrape:
@@ -21,7 +21,8 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install requests pandas
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
       
       - name: Run scraper
         run: python scraper.py
