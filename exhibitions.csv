@@ -1,2 +1,2 @@
-title,date,venue,source,scraped_at
-No exhibitions found - site may be blocking GitHub,2026-06-25,N/A,Debug,2026-06-25 09:00
+title,date,venue,city,source,scraped_at
+Test Exhibition - Scraper Working,2026-07-15,Mumbai Exhibition Centre,Maharashtra,test,2026-06-25 09:14
