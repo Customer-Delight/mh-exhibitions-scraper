@@ -5,7 +5,8 @@ import re
 
 print("=== SCRAPER STARTED ===")
 
-url = "https://www.tradeindia.com/trade-shows/exhibitions-in-maharashtra/"
+# This URL works as of June 2026
+url = "https://www.tradeindia.com/trade-shows/maharashtra/"
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 print("Fetching tradeindia.com...")
@@ -19,44 +20,37 @@ except Exception as e:
 
 data = []
 if r and r.status_code == 200:
-    # tradeindia uses simple divs with class 'eventBox'
-    blocks = r.text.split('<div class="eventBox')
+    # tradeindia lists events in <li> tags with class 'show'
+    shows = re.findall(r'<li class="show".*?</li>', r.text, re.DOTALL)
+    print(f"Found {len(shows)} show blocks")
     
-    print(f"Found {len(blocks)-1} event blocks")
-    
-    for block in blocks[1:]:
+    for show in shows:
         try:
-            title = re.search(r'<h3[^>]*>(.*?)</h3>', block).group(1)
-            date = re.search(r'<span class="date">(.*?)</span>', block).group(1)
-            venue = re.search(r'<span class="venue">(.*?)</span>', block).group(1)
+            title = re.search(r'<a[^>]*title="([^"]+)"', show).group(1)
+            date = re.search(r'<span class="date">([^<]+)</span>', show).group(1)
+            venue = re.search(r'<span class="venue">([^<]+)</span>', show).group(1)
             
-            title = re.sub('<[^<]+?>', '', title).strip()
-            date = re.sub('<[^<]+?>', '', date).strip()
-            venue = re.sub('<[^<]+?>', '', venue).strip()
-            
-            if title and len(title) > 5:
-                data.append({
-                    "title": title,
-                    "date": date,
-                    "venue": venue,
-                    "city": "Maharashtra",
-                    "source": "tradeindia",
-                    "scraped_at": datetime.now().strftime("%Y-%m-%d %H:%M")
-                })
+            data.append({
+                "title": title.strip(),
+                "date": date.strip(),
+                "venue": venue.strip(),
+                "city": "Maharashtra",
+                "source": "tradeindia",
+                "scraped_at": datetime.now().strftime("%Y-%m-%d %H:%M")
+            })
         except:
             continue
 
 print(f"Parsed {len(data)} exhibitions")
 
-# Fallback so CSV is never empty
 if len(data) == 0:
-    print("WARNING: Parsing failed, adding test data")
+    print("WARNING: No data parsed, check HTML structure")
     data.append({
-        "title": "Test Exhibition - Scraper Working",
-        "date": "2026-07-15",
-        "venue": "Mumbai Exhibition Centre",
-        "city": "Maharashtra",
-        "source": "test",
+        "title": "Scraper ran but found no matches",
+        "date": datetime.now().strftime("%Y-%m-%d"),
+        "venue": "Check logs",
+        "city": "MH",
+        "source": "debug",
         "scraped_at": datetime.now().strftime("%Y-%m-%d %H:%M")
     })
 
