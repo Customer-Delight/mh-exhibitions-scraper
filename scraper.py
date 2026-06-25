@@ -1,57 +1,47 @@
 import requests
-from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 
-def scrape_mh_exhibitions():
-    url = "https://10times.com/india/maharashtra/exhibitions"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "en-US,en;q=0.9"
-    }
+print("=== SCRAPER STARTED ===")
 
-    print("Fetching data from 10times.com...")
-    response = requests.get(url, headers=headers, timeout=15)
+url = "https://10times.com/india/maharashtra/exhibitions"
+headers = {"User-Agent": "Mozilla/5.0"}
 
-    # DEBUG: Show what we actually got
-    print(f"Status code: {response.status_code}")
-    print(f"Page length: {len(response.text)} characters")
-    print(f"First 300 chars: {response.text[:300]}")
+print("Fetching URL...")
+try:
+    r = requests.get(url, headers=headers, timeout=15)
+    print("Status code:", r.status_code)
+    print("Page size:", len(r.text))
+except Exception as e:
+    print("REQUEST FAILED:", e)
+    r = None
 
-    soup = BeautifulSoup(response.content, 'lxml')
-    exhibitions = []
-
-    # DEBUG: Count how many tables exist
-    tables = soup.select('table')
-    print(f"Found {len(tables)} tables on page")
-
-    # Try multiple selectors - 10times changes layouts
-    rows = soup.select('table.table tr') or soup.select('table tr') or soup.select('.event-list tr')
-    print(f"Found {len(rows)} total rows")
-
-    for row in rows[1:]: # skip header
-        cols = row.find_all(['td', 'th'])
-        if len(cols) >= 3:
-            title = cols[0].get_text(strip=True)
-            date = cols[1].get_text(strip=True)
-            venue = cols[2].get_text(strip=True)
-
-            if len(title) > 5: # ignore empty/short titles
-                exhibitions.append({
-                    "title": title,
-                    "date": date,
-                    "venue": venue,
-                    "city": "Maharashtra",
+data = []
+if r and r.status_code == 200:
+    # Just grab any line mentioning these keywords
+    for line in r.text.split('\n'):
+        clean = line.strip()
+        if any(word in clean for word in ['Expo', 'Exhibition', 'Trade Show', 'Fair']):
+            if 20 < len(clean) < 150:
+                data.append({
+                    "title": clean,
+                    "date": "Check website",
+                    "venue": "Maharashtra",
                     "source": "10times",
-                    "scraped_at": datetime.now().strftime("%Y-%m-%d %H:%M")
+                    "scraped_at": datetime.now().strftime("%Y-%m-%d")
                 })
 
-    print(f"Found {len(exhibitions)} exhibitions")
-    return exhibitions
+# If scraping failed, add dummy row so file is never empty
+if len(data) == 0:
+    print("WARNING: No data found, adding placeholder")
+    data.append({
+        "title": "No exhibitions found - site may be blocking GitHub",
+        "date": datetime.now().strftime("%Y-%m-%d"),
+        "venue": "N/A",
+        "source": "Debug",
+        "scraped_at": datetime.now().strftime("%Y-%m-%d %H:%M")
+    })
 
-if __name__ == "__main__":
-    data = scrape_mh_exhibitions()
-    df = pd.DataFrame(data)
-    df.to_csv('exhibitions.csv', index=False)
-    print(f"Saved {len(data)} exhibitions to CSV")
+df = pd.DataFrame(data)
+df.to_csv('exhibitions.csv', index=False)
+print(f"=== FINISHED: Saved {len(df)} rows to CSV ===")
